@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import FontCard from "./FontCard";
+import FontGrid from "./FontGrid";
 import Logo from "./Logo";
 import ExportPanel from "./ExportPanel";
 import PrintSheet from "./PrintSheet";
@@ -40,17 +40,6 @@ type SortMode = "az" | "za" | "popular" | "recent" | "random";
 
 type View = "grid" | "pair";
 
-/** How many cards to add each time the infinite-scroll sentinel appears. */
-const PAGE_SIZE = 48;
-
-const COLUMN_CLASS: Record<number, string> = {
-  1: "grid-cols-1",
-  2: "grid-cols-1 md:grid-cols-2",
-  3: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
-  4: "grid-cols-1 md:grid-cols-2 lg:grid-cols-4",
-  6: "grid-cols-2 md:grid-cols-3 lg:grid-cols-6",
-};
-
 /** Deterministic shuffle so "Random" stays stable until explicitly reshuffled. */
 function shuffle<T>(items: T[], seed: number) {
   const result = [...items];
@@ -81,7 +70,6 @@ export default function Typedeck() {
   const [columns, setColumns] = usePersistentState<number>("columns", 2);
   const [theme, setTheme] = usePersistentState<"light" | "dark">("theme", "light");
   const [seed, setSeed] = useState(1);
-  const [visible, setVisible] = useState(PAGE_SIZE);
   const [showExport, setShowExport] = useState(false);
 
   const [scrollSpeed, setScrollSpeed] = useState(0);
@@ -110,7 +98,6 @@ export default function Typedeck() {
   const selected = usePersistentSet("selected");
   const hidden = usePersistentSet("hidden");
 
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   // The toolbar wraps to two or three rows depending on width, so the sticky
   // sidebar's offset has to follow the header's real height rather than a
@@ -259,27 +246,6 @@ export default function Typedeck() {
     }
   }, [allFonts, tab, category, search, sort, seed, favorites.set, selected.set, hidden.set]);
 
-  // Reset the render window whenever the result set changes.
-  useEffect(() => {
-    setVisible(PAGE_SIZE);
-  }, [tab, category, search, sort, seed]);
-
-  // Infinite scroll: reveal another page when the sentinel comes into view.
-  useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          setVisible((current) => Math.min(current + PAGE_SIZE, fonts.length));
-        }
-      },
-      { rootMargin: "800px 0px" },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [fonts.length]);
-
   useEffect(() => {
     const supported = supportsLocalFonts();
     setCanUseLocalFonts(supported);
@@ -419,8 +385,6 @@ export default function Typedeck() {
     () => allFonts.filter((f) => selected.set.has(f.id)),
     [allFonts, selected.set],
   );
-
-  const shown = fonts.slice(0, visible);
 
   /**
    * Rendered twice: in the desktop sidebar and in the mobile sheet. Kept as
@@ -908,25 +872,17 @@ export default function Typedeck() {
               }
             />
           ) : (
-            <>
-              <div className={`grid gap-3 ${COLUMN_CLASS[columns] ?? COLUMN_CLASS[2]}`}>
-                {shown.map((font) => (
-                  <FontCard
-                    key={font.id}
-                    font={font}
-                    settings={settings}
-                    isFavorite={favorites.set.has(font.id)}
-                    isSelected={selected.set.has(font.id)}
-                    onToggleFavorite={favorites.toggle}
-                    onToggleSelected={selected.toggle}
-                    onToggleHidden={hidden.toggle}
-                    onOpenGlyphs={setGlyphFont}
-                  />
-                ))}
-              </div>
-
-              <div ref={sentinelRef} className="h-10" />
-            </>
+            <FontGrid
+              fonts={fonts}
+              columns={columns}
+              settings={settings}
+              favoriteIds={favorites.set}
+              selectedIds={selected.set}
+              onToggleFavorite={favorites.toggle}
+              onToggleSelected={selected.toggle}
+              onToggleHidden={hidden.toggle}
+              onOpenGlyphs={setGlyphFont}
+            />
           )}
         </main>
       </div>
