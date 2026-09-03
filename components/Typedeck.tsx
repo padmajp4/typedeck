@@ -5,7 +5,7 @@ import Link from "next/link";
 import FontCard from "./FontCard";
 import Logo from "./Logo";
 import ExportPanel from "./ExportPanel";
-import PairingView from "./PairingView";
+import PairingView, { DEFAULT_PAIRING, type PairingState } from "./PairingView";
 import ColorControls from "./ColorControls";
 import { Chip, NumberField, Segmented } from "./ui";
 import { queryLocalFonts, supportsLocalFonts } from "@/lib/localFonts";
@@ -82,6 +82,7 @@ export default function Typedeck() {
   const [view, setView] = useState<View>("grid");
   const [pairHeading, setPairHeading] = useState<string | null>(null);
   const [pairBody, setPairBody] = useState<string | null>(null);
+  const [pairing, setPairing] = usePersistentState<PairingState>("pairing", DEFAULT_PAIRING);
   const [customFonts, setCustomFonts] = useState<FontItem[]>([]);
   const [dragging, setDragging] = useState(false);
   const [uploadNote, setUploadNote] = useState<string | null>(null);
@@ -291,6 +292,13 @@ export default function Typedeck() {
     if (shared.view) setView(shared.view as View);
     setPairHeading(shared.pairHeading ?? null);
     setPairBody(shared.pairBody ?? null);
+    setPairing({
+      template: (shared.template ?? DEFAULT_PAIRING.template) as PairingState["template"],
+      canvas: (shared.canvas ?? DEFAULT_PAIRING.canvas) as PairingState["canvas"],
+      radius: shared.radius ?? DEFAULT_PAIRING.radius,
+      headingSize: shared.headingSize ?? DEFAULT_PAIRING.headingSize,
+      bodySize: shared.bodySize ?? DEFAULT_PAIRING.bodySize,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -306,6 +314,7 @@ export default function Typedeck() {
       view,
       pairHeading,
       pairBody,
+      ...pairing,
     });
     const url = `${window.location.origin}${window.location.pathname}${
       fragment ? `#${fragment}` : ""
@@ -410,14 +419,16 @@ export default function Typedeck() {
             style={{ borderColor: "var(--line)", background: "var(--canvas)", color: "var(--ink)" }}
           />
 
-          <NumberField
-            label="Size"
-            value={settings.size}
+          {view === "grid" && (
+            <NumberField
+              label="Size"
+              value={settings.size}
             min={8}
             max={200}
             step={1}
-            onChange={(v) => update("size", v)}
-          />
+              onChange={(v) => update("size", v)}
+            />
+          )}
           <NumberField
             label="Spacing"
             value={settings.letterSpacing}
@@ -511,7 +522,7 @@ export default function Typedeck() {
             </>
           )}
 
-          <ColorControls settings={settings} onChange={update} />
+          {view === "grid" && <ColorControls settings={settings} onChange={update} />}
 
           {view === "grid" && (
             <label className="flex items-center gap-2 text-[12px]" style={{ color: "var(--muted)" }}>
@@ -718,8 +729,12 @@ export default function Typedeck() {
               settings={settings}
               headingId={pairHeading}
               bodyId={pairBody}
+              pairing={pairing}
               onChangeHeading={setPairHeading}
               onChangeBody={setPairBody}
+              onChangePairing={(patch) =>
+                setPairing((current) => ({ ...current, ...patch }))
+              }
             />
           ) : (
             <>

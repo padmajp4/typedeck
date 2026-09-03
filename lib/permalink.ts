@@ -15,6 +15,11 @@ export interface ShareState {
   view: string;
   pairHeading: string | null;
   pairBody: string | null;
+  template: string;
+  canvas: string;
+  radius: number;
+  headingSize: number;
+  bodySize: number;
 }
 
 export const DEFAULT_SHARE: Omit<ShareState, "settings"> = {
@@ -26,6 +31,11 @@ export const DEFAULT_SHARE: Omit<ShareState, "settings"> = {
   view: "grid",
   pairHeading: null,
   pairBody: null,
+  template: "hero",
+  canvas: "paper",
+  radius: 16,
+  headingSize: 46,
+  bodySize: 16,
 };
 
 /** Short keys keep the shared link readable. */
@@ -47,6 +57,11 @@ const KEYS = {
   view: "v",
   pairHeading: "ph",
   pairBody: "pb",
+  template: "tp",
+  canvas: "cv",
+  radius: "r",
+  headingSize: "hs",
+  bodySize: "bs",
 } as const;
 
 export function encodeShareState(state: ShareState): string {
@@ -79,6 +94,11 @@ export function encodeShareState(state: ShareState): string {
   put(KEYS.view, state.view, DEFAULT_SHARE.view);
   put(KEYS.pairHeading, state.pairHeading, DEFAULT_SHARE.pairHeading);
   put(KEYS.pairBody, state.pairBody, DEFAULT_SHARE.pairBody);
+  put(KEYS.template, state.template, DEFAULT_SHARE.template);
+  put(KEYS.canvas, state.canvas, DEFAULT_SHARE.canvas);
+  put(KEYS.radius, state.radius, DEFAULT_SHARE.radius);
+  put(KEYS.headingSize, state.headingSize, DEFAULT_SHARE.headingSize);
+  put(KEYS.bodySize, state.bodySize, DEFAULT_SHARE.bodySize);
 
   return params.toString();
 }
@@ -152,5 +172,12 @@ export function decodeShareState(fragment: string): Partial<ShareState> | null {
     view: oneOf(params, KEYS.view, ["grid", "pair"] as const, "grid"),
     pairHeading: params.get(KEYS.pairHeading),
     pairBody: params.get(KEYS.pairBody),
+    template: oneOf(params, KEYS.template, ["hero", "editorial", "product"] as const, "hero"),
+    canvas: oneOf(params, KEYS.canvas, ["paper", "sand", "ink"] as const, "paper"),
+    radius: [0, 8, 16, 24].includes(num(params, KEYS.radius, 16, 0, 24))
+      ? num(params, KEYS.radius, 16, 0, 24)
+      : 16,
+    headingSize: num(params, KEYS.headingSize, 46, 16, 140),
+    bodySize: num(params, KEYS.bodySize, 16, 10, 40),
   };
 }
