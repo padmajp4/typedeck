@@ -5,12 +5,14 @@ import Link from "next/link";
 import FontCard from "./FontCard";
 import Logo from "./Logo";
 import ExportPanel from "./ExportPanel";
+import PrintSheet from "./PrintSheet";
 import GlyphMap from "./GlyphMap";
 import PairingView, { DEFAULT_PAIRING, type PairingState } from "./PairingView";
 import ColorControls from "./ColorControls";
 import { Chip, NumberField, Segmented } from "./ui";
 import { queryLocalFonts, supportsLocalFonts } from "@/lib/localFonts";
-import { loadCustomFonts } from "@/lib/customFonts";
+import { loadCustomFonts, restoreCustomFonts } from "@/lib/customFonts";
+import { clearStoredFonts } from "@/lib/fontStore";
 import { decodeShareState, encodeShareState } from "@/lib/permalink";
 import { usePersistentSet, usePersistentState } from "@/lib/useStore";
 import { SITE } from "@/lib/site";
@@ -93,6 +95,11 @@ export default function Typedeck() {
   // sheet instead; without it search and filters are unreachable on a phone.
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [glyphFont, setGlyphFont] = useState<FontItem | null>(null);
+  // The sidebar button is easy to miss, so prompt once until acted on.
+  const [localPromptDismissed, setLocalPromptDismissed] = usePersistentState(
+    "localPromptDismissed",
+    false,
+  );
   // Feature detection must run after mount so SSR and hydration agree.
   const [canUseLocalFonts, setCanUseLocalFonts] = useState(false);
 
@@ -272,6 +279,17 @@ export default function Typedeck() {
 
   useEffect(() => {
     setCanUseLocalFonts(supportsLocalFonts());
+  }, []);
+
+  // Bring back fonts uploaded in a previous session.
+  useEffect(() => {
+    let cancelled = false;
+    restoreCustomFonts().then((restored) => {
+      if (!cancelled && restored.length) setCustomFonts(restored);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -491,6 +509,17 @@ export default function Typedeck() {
             {favorites.count > 0 && (
               <Chip active={false} onClick={favorites.clear}>
                 Clear favourites
+              </Chip>
+            )}
+            {customFonts.length > 0 && (
+              <Chip
+                active={false}
+                onClick={() => {
+                  void clearStoredFonts();
+                  setCustomFonts([]);
+                }}
+              >
+                Remove uploaded fonts
               </Chip>
             )}
           </div>
@@ -760,6 +789,39 @@ export default function Typedeck() {
         </aside>
 
         <main className="min-w-0 flex-1 p-4">
+          {canUseLocalFonts && localFonts.length === 0 && !localPromptDismissed && (
+            <div
+              className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3"
+              style={{ borderColor: "var(--accent)", background: "var(--accent-soft)" }}
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium" style={{ color: "var(--ink)" }}>
+                  Preview the fonts already on this computer
+                </p>
+                <p className="mt-0.5 text-[12px]" style={{ color: "var(--muted)" }}>
+                  Compare your installed fonts alongside Google Fonts and Fontshare. The list
+                  stays in your browser and is never uploaded.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={grantLocalFonts}
+                className="rounded-lg px-3 py-1.5 text-[12px] font-medium"
+                style={{ background: "var(--accent)", color: "#fff" }}
+              >
+                Grant font access
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocalPromptDismissed(true)}
+                className="rounded-lg px-2 py-1.5 text-[12px]"
+                style={{ color: "var(--muted)" }}
+              >
+                Not now
+              </button>
+            </div>
+          )}
+
           {loading && (
             <p className="p-8 text-center text-[13px]" style={{ color: "var(--muted)" }}>
               Loading font catalogues…
@@ -849,6 +911,8 @@ export default function Typedeck() {
           </div>
         </div>
       )}
+
+      <PrintSheet fonts={selectedFonts} settings={settings} />
 
       {glyphFont && <GlyphMap font={glyphFont} onClose={() => setGlyphFont(null)} />}
 

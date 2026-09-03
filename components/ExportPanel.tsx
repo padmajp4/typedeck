@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { fontFamilyValue } from "@/lib/fontLoader";
+import { fontFamilyValue, loadFont, resolveWeight } from "@/lib/fontLoader";
 import type { FontItem, PreviewSettings } from "@/lib/types";
 
 type Format = "css" | "html" | "list";
@@ -54,6 +54,7 @@ export default function ExportPanel({
 }) {
   const [format, setFormat] = useState<Format>("css");
   const [copied, setCopied] = useState(false);
+  const [preparing, setPreparing] = useState(false);
 
   const code = useMemo(() => {
     if (format === "css") return buildCss(fonts, settings);
@@ -69,6 +70,28 @@ export default function ExportPanel({
     } catch {
       // Clipboard may be blocked; the code stays selectable in the textarea.
     }
+  }
+
+  /**
+   * A selected font may never have scrolled into view, so its webfont is not
+   * loaded yet. Print too early and the sheet comes out in a fallback face.
+   */
+  async function print() {
+    setPreparing(true);
+    for (const font of fonts) loadFont(font, resolveWeight(font, settings.weight), settings.italic);
+    try {
+      await Promise.all(
+        fonts.map((font) =>
+          document.fonts.load(
+            `${resolveWeight(font, settings.weight)} 32px "${font.family.replace(/"/g, "")}"`,
+          ),
+        ),
+      );
+    } catch {
+      // Print anyway; at worst a family falls back.
+    }
+    setPreparing(false);
+    window.print();
   }
 
   return (
@@ -124,6 +147,14 @@ export default function ExportPanel({
             style={{ borderColor: "var(--line)", color: "var(--muted)" }}
           >
             Close
+          </button>
+          <button
+            type="button"
+            onClick={print}
+            className="rounded-lg border px-3 py-1.5 text-[12px]"
+            style={{ borderColor: "var(--line)", color: "var(--ink)" }}
+          >
+            {preparing ? "Preparing…" : "Print / PDF"}
           </button>
           <button
             type="button"

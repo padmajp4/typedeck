@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { exportPng, exportSvg } from "@/lib/imageExport";
 import {
   fontFamilyValue,
   isStyleLoaded,
@@ -27,6 +28,29 @@ const SOURCE_LABEL: Record<FontItem["source"], string> = {
   local: "Local",
   custom: "Uploaded",
 };
+
+function TextButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onClick={onClick}
+      className="grid h-7 place-items-center rounded-md px-1.5 text-[10px] font-semibold tracking-wide transition-colors"
+      style={{ color: "var(--muted)" }}
+    >
+      {children}
+    </button>
+  );
+}
 
 function IconButton({
   label,
@@ -149,6 +173,18 @@ export default function FontCard({
           <IconButton label="View character set" onClick={() => onOpenGlyphs(font)}>
             Aa
           </IconButton>
+          <TextButton
+            label="Download this preview as a PNG"
+            onClick={() => void exportPng(font, settings, weight)}
+          >
+            PNG
+          </TextButton>
+          <TextButton
+            label="Download this preview as an SVG, with the font embedded"
+            onClick={() => void exportSvg(font, settings, weight)}
+          >
+            SVG
+          </TextButton>
           <IconButton
             label={isSelected ? "Deselect" : "Select for export"}
             active={isSelected}

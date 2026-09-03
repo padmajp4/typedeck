@@ -70,3 +70,41 @@ body {
 input[type="range"] {
   accent-color: var(--accent);
 }
+
+/* ---- Print: a clean specimen sheet, not a screenshot of the app ---- */
+.print-sheet {
+  display: none;
+}
+
+@media print {
+  /* Everything that is chrome rather than content. */
+  header,
+  aside,
+  main,
+  [role="dialog"] {
+    display: none !important;
+  }
+
+  .print-sheet {
+    display: block;
+    padding: 0;
+  }
+
+  .print-specimen {
+    /* Keep a family's name and its sample on the same page. */
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border-bottom: 1px solid #ddd;
+    padding: 14pt 0;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  @page {
+    margin: 16mm;
+  }
+}

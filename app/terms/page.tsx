@@ -70,10 +70,12 @@ export default function TermsPage() {
           storage and never transmitted to us.
         </p>
         <p>
-          Font files you upload are read and rendered entirely in your browser. They are never
-          uploaded to any server, and no copy is retained; they are discarded when you reload
-          the page. Granting access to your installed fonts is likewise handled by your
-          browser, and that list is never sent anywhere.
+          Font files you upload are read and rendered entirely in your browser and are never
+          sent to any server. A copy is kept in your browser&rsquo;s own IndexedDB storage so
+          the fonts are still there when you return; you can delete them at any time with
+          &ldquo;Remove uploaded fonts&rdquo; in the sidebar, or by clearing this
+          site&rsquo;s data. Granting access to your installed fonts is likewise handled by
+          your browser, and that list is never sent anywhere.
         </p>
         <p>
           Previewing fonts does cause your browser to request font files directly from Google

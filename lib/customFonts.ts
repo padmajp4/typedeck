@@ -1,3 +1,4 @@
+import { loadStoredFonts, saveFont, type StoredFont } from "./fontStore";
 import type { FontItem } from "./types";
 
 const SUPPORTED = /\.(ttf|otf|woff2?|ttc)$/i;
@@ -38,10 +39,57 @@ export interface UploadResult {
   rejected: string[];
 }
 
+/** Register one already-decoded face with the document. */
+async function register(
+  family: string,
+  bytes: ArrayBuffer,
+  weight: number,
+  italic: boolean,
+) {
+  const face = new FontFace(family, bytes, {
+    weight: String(weight),
+    style: italic ? "italic" : "normal",
+  });
+  await face.load();
+  document.fonts.add(face);
+}
+
+function toItem(family: string, weight: number, italic: boolean): FontItem {
+  return {
+    id: `custom:${family}`,
+    family,
+    source: "custom",
+    category: "Other",
+    weights: [weight],
+    hasItalic: italic,
+    axes: [],
+    designers: [],
+  };
+}
+
+/**
+ * Re-register fonts saved in a previous session. Called once on startup.
+ */
+export async function restoreCustomFonts(): Promise<FontItem[]> {
+  const stored = await loadStoredFonts();
+  const items: FontItem[] = [];
+
+  for (const font of stored) {
+    try {
+      // slice() because a FontFace takes ownership of the buffer it is given.
+      await register(font.family, font.bytes.slice(0), font.weight, font.italic);
+      items.push(toItem(font.family, font.weight, font.italic));
+    } catch {
+      // A file that no longer decodes is simply skipped.
+    }
+  }
+  return items.sort((a, b) => a.family.localeCompare(b.family));
+}
+
 /**
  * Register dropped font files with the document. Everything happens in the
- * browser — the bytes are never uploaded anywhere. Registrations last for the
- * session only, since we deliberately keep no copy of the file.
+ * browser — the bytes are never uploaded anywhere — and a copy is kept in
+ * IndexedDB so the fonts survive a reload.
  */
 export async function loadCustomFonts(files: File[]): Promise<UploadResult> {
   const fonts: FontItem[] = [];
@@ -59,23 +107,18 @@ export async function loadCustomFonts(files: File[]): Promise<UploadResult> {
 
     try {
       const buffer = await file.arrayBuffer();
-      const face = new FontFace(family, buffer, {
-        weight: String(weight),
-        style: italic ? "italic" : "normal",
-      });
-      await face.load();
-      document.fonts.add(face);
+      await register(family, buffer.slice(0), weight, italic);
 
-      fonts.push({
-        id: `custom:${family}`,
+      const record: StoredFont = {
         family,
-        source: "custom",
-        category: "Other",
-        weights: [weight],
-        hasItalic: italic,
-        axes: [],
-        designers: [],
-      });
+        weight,
+        italic,
+        bytes: buffer,
+        addedAt: Date.now(),
+      };
+      await saveFont(record);
+
+      fonts.push(toItem(family, weight, italic));
     } catch {
       // Corrupt file, or a format this browser cannot parse.
       rejected.push(file.name);
