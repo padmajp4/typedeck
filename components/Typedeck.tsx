@@ -13,6 +13,7 @@ import { Chip, NumberField, Segmented } from "./ui";
 import { queryLocalFonts, supportsLocalFonts } from "@/lib/localFonts";
 import { loadCustomFonts, restoreCustomFonts } from "@/lib/customFonts";
 import { printSpecimen } from "@/lib/printSpecimen";
+import { randomSampleText } from "@/lib/sampleText";
 import { clearStoredFonts } from "@/lib/fontStore";
 import { decodeShareState, encodeShareState } from "@/lib/permalink";
 import { usePersistentSet, usePersistentState } from "@/lib/useStore";
@@ -613,6 +614,16 @@ export default function Typedeck() {
             className="min-w-0 flex-1 rounded-lg border px-3 py-1.5 text-[13px] outline-none"
             style={{ borderColor: "var(--line)", background: "var(--canvas)", color: "var(--ink)" }}
           />
+          <button
+            type="button"
+            onClick={() => update("text", randomSampleText(settings.text))}
+            title="Try a random sample line"
+            aria-label="Shuffle preview text"
+            className="rounded-lg border px-2.5 py-1.5 text-[13px]"
+            style={{ borderColor: "var(--line)", color: "var(--muted)" }}
+          >
+            🎲
+          </button>
 
           {view === "grid" && (
             <NumberField
