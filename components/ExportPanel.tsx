@@ -9,7 +9,7 @@ type Format = "css" | "html" | "list";
 function googleLink(fonts: FontItem[]) {
   const families = fonts
     .filter((f) => f.source === "google")
-    .map((f) => `family=${f.family.replace(/ /g, "+")}:wght@400;700`);
+    .map((f) => `family=${encodeURIComponent(f.family)}:wght@400;700`);
   if (!families.length) return null;
   return `https://fonts.googleapis.com/css2?${families.join("&")}&display=swap`;
 }

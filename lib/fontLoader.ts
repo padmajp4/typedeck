@@ -48,7 +48,9 @@ export function resolveWeight(font: FontItem, requestedWeight: number) {
 }
 
 function googleHref(font: FontItem, weight: number, italic: boolean) {
-  const family = font.family.replace(/ /g, "+");
+  // Encoded, not just space-substituted: a family name carrying "&" or "?"
+  // would otherwise inject query parameters into the request.
+  const family = encodeURIComponent(font.family);
   // css2 requires axis tags in alphabetical order, and `ital` precedes `wght`.
   const spec = italic ? `:ital,wght@1,${weight}` : `:wght@${weight}`;
   return `https://fonts.googleapis.com/css2?family=${family}${spec}&display=swap`;
@@ -77,6 +79,24 @@ function pickFile(files: FontFile[], weight: number, italic: boolean) {
   );
 }
 
+/**
+ * The file URL is interpolated into a CSS descriptor, so accept only a plain
+ * https URL on the expected CDN. This bounds the damage if the upstream
+ * catalogue ever returns something hostile.
+ */
+function isSafeFontUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === "https:" &&
+      parsed.hostname === "cdn.fontshare.com" &&
+      !/["'()\\]/.test(url)
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function loadFontshare(
   font: FontItem,
   weight: number,
@@ -84,7 +104,7 @@ async function loadFontshare(
   key: string,
 ) {
   const file = pickFile(font.files ?? [], weight, italic);
-  if (!file) return markLoaded(key);
+  if (!file || !isSafeFontUrl(file.url)) return markLoaded(key);
 
   try {
     const face = new FontFace(font.family, `url(${file.url}) format('woff2')`, {
