@@ -154,7 +154,11 @@ async function embeddableFace(font: FontItem, weight: number): Promise<string | 
     const base64 = btoa(binary);
     const format = fileUrl.endsWith(".woff2") ? "woff2" : "truetype";
 
-    return `@font-face{font-family:"${font.family}";font-weight:${weight};src:url(data:font/${
+    // The family name is interpolated into this SVG's <style> block below,
+    // so it must be XML-escaped here just like the sibling rule in
+    // exportSvg is — a raw value could otherwise close the <style> tag and
+    // inject markup, as verified with a proof-of-concept payload.
+    return `@font-face{font-family:"${escapeXml(font.family)}";font-weight:${weight};src:url(data:font/${
       format === "woff2" ? "woff2" : "ttf"
     };base64,${base64}) format("${format}");}`;
   } catch {
