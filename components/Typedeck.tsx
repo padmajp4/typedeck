@@ -12,6 +12,7 @@ import ColorControls from "./ColorControls";
 import { Chip, NumberField, Segmented } from "./ui";
 import { queryLocalFonts, supportsLocalFonts } from "@/lib/localFonts";
 import { loadCustomFonts, restoreCustomFonts } from "@/lib/customFonts";
+import { printSpecimen } from "@/lib/printSpecimen";
 import { clearStoredFonts } from "@/lib/fontStore";
 import { decodeShareState, encodeShareState } from "@/lib/permalink";
 import { usePersistentSet, usePersistentState } from "@/lib/useStore";
@@ -91,6 +92,7 @@ export default function Typedeck() {
   const [dragging, setDragging] = useState(false);
   const [uploadNote, setUploadNote] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [printing, setPrinting] = useState(false);
   // Below the lg breakpoint the sidebar is hidden, so its controls live in a
   // sheet instead; without it search and filters are unreachable on a phone.
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -762,6 +764,24 @@ export default function Typedeck() {
               style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
             >
               Export ({selectedFonts.length})
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                setPrinting(true);
+                await printSpecimen(selectedFonts, settings);
+                setPrinting(false);
+              }}
+              disabled={selectedFonts.length === 0}
+              title={
+                selectedFonts.length === 0
+                  ? "Select a font first to print its specimen"
+                  : "Print a specimen sheet of the selected fonts"
+              }
+              className="rounded-lg border px-2.5 py-1.5 text-[12px] disabled:opacity-40"
+              style={{ borderColor: "var(--line)", color: "var(--ink)" }}
+            >
+              {printing ? "Preparing…" : "Print"}
             </button>
             <button
               type="button"
