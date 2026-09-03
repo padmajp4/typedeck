@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import FontCard from "./FontCard";
 import Logo from "./Logo";
 import ExportPanel from "./ExportPanel";
@@ -557,7 +558,7 @@ export default function Typedeck() {
 
       <div className="flex">
         <aside
-          className="scroll-thin sticky hidden w-56 shrink-0 overflow-y-auto border-r p-3 lg:block"
+          className="scroll-thin sticky hidden w-56 shrink-0 flex-col overflow-y-auto border-r p-3 lg:flex"
           style={{
             borderColor: "var(--line)",
             top: headerHeight,
@@ -670,6 +671,26 @@ export default function Typedeck() {
               )}
             </div>
           )}
+          <div
+            className="mt-auto flex flex-col gap-1 border-t pt-3 text-[11px]"
+            style={{ borderColor: "var(--line)", color: "var(--muted)" }}
+          >
+            <p>
+              Made with <span style={{ color: "#e0245e" }}>&hearts;</span> by{" "}
+              <a
+                href="https://padmajp.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+                style={{ color: "var(--ink)" }}
+              >
+                padmajp.com
+              </a>
+            </p>
+            <Link href="/terms" className="hover:underline">
+              Terms of Use
+            </Link>
+          </div>
         </aside>
 
         <main className="min-w-0 flex-1 p-4">
