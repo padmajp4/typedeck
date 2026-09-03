@@ -16,7 +16,7 @@ function resolveSiteUrl() {
 export const SITE = {
   url: resolveSiteUrl(),
   name: "Typedeck",
-  title: "Typedeck — Preview and compare 2,000+ fonts side by side",
+  title: "Typedeck: Preview and compare 2,000+ fonts side by side",
   shortDescription: "Preview 2,000+ fonts side by side.",
   description:
     "Preview and compare over 2,000 typefaces side by side. Browse Google Fonts, Fontshare and your own installed or uploaded fonts with live text, size, spacing and leading controls, font pairing and a WCAG contrast checker. Free, no sign-up.",
