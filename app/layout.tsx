@@ -51,6 +51,13 @@ export const metadata: Metadata = {
     },
   },
   formatDetection: { email: false, address: false, telephone: false },
+  // iOS ignores most of the web manifest for "Add to Home Screen"; this is
+  // the separate set of tags it actually reads.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: SITE.name,
+  },
 };
 
 export const viewport: Viewport = {
@@ -90,6 +97,19 @@ const CLARITY_SCRIPT = `
 })(window, document, "clarity", "script", "${SITE.clarityId}");
 `;
 
+/**
+ * Registered only in production: a service worker under active development
+ * fights the dev server's own caching and hot reload. It waits for window
+ * "load" itself, so this never competes with anything render-critical.
+ */
+const SW_SCRIPT = `
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("/sw.js").catch(function () {});
+  });
+}
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={display.variable} suppressHydrationWarning>
@@ -97,6 +117,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         {process.env.NODE_ENV === "production" && (
           <script dangerouslySetInnerHTML={{ __html: CLARITY_SCRIPT }} />
+        )}
+        {process.env.NODE_ENV === "production" && (
+          <script dangerouslySetInnerHTML={{ __html: SW_SCRIPT }} />
         )}
         <link rel="preconnect" href="https://www.clarity.ms" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
