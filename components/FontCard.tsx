@@ -118,24 +118,29 @@ export default function FontCard({
   return (
     <article
       ref={ref}
-      className="group flex flex-col gap-3 rounded-xl border p-5 transition-colors"
+      className="group relative flex flex-col gap-3 rounded-xl border p-5 transition-colors"
       style={{
         borderColor: isSelected ? "var(--accent)" : "var(--line)",
         background: isSelected ? "var(--accent-soft)" : "var(--canvas)",
       }}
     >
       <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="truncate text-[13px] font-medium" title={font.family}>
             {font.family}
           </h2>
-          <p className="mt-0.5 text-[11px]" style={{ color: "var(--muted)" }}>
+          <p className="mt-0.5 truncate text-[11px]" style={{ color: "var(--muted)" }}>
             {SOURCE_LABEL[font.source]} · {font.category}
             {font.axes.length > 0 && " · Variable"}
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+        {/* Floated out of the flow: at four or six columns an always-reserved
+            toolbar left almost no room for the family name. */}
+        <div
+          className="absolute right-11 top-4 flex items-center gap-0.5 rounded-lg px-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+          style={{ background: "var(--canvas)" }}
+        >
           <IconButton label="Copy font name" onClick={copyName}>
             {copied ? "✓" : "⧉"}
           </IconButton>

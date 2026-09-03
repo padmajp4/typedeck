@@ -93,6 +93,11 @@ export default function Typedeck() {
   const hidden = usePersistentSet("hidden");
 
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  // The toolbar wraps to two or three rows depending on width, so the sticky
+  // sidebar's offset has to follow the header's real height rather than a
+  // hard-coded guess.
+  const [headerHeight, setHeaderHeight] = useState(105);
 
   // Fetch both remote catalogues in parallel; either may fail independently.
   useEffect(() => {
@@ -261,6 +266,16 @@ export default function Typedeck() {
     setCanUseLocalFonts(supportsLocalFonts());
   }, []);
 
+  useEffect(() => {
+    const node = headerRef.current;
+    if (!node) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setHeaderHeight(entry.contentRect.height);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   // A shared link wins over whatever was last stored locally. This effect is
   // declared after the persistence hooks, so it runs once their reads land.
   useEffect(() => {
@@ -376,8 +391,9 @@ export default function Typedeck() {
         </div>
       )}
       <header
-        className="sticky top-0 z-30 border-b backdrop-blur"
-        style={{ borderColor: "var(--line)", background: "color-mix(in srgb, var(--canvas) 88%, transparent)" }}
+        ref={headerRef}
+        className="sticky top-0 z-30 border-b"
+        style={{ borderColor: "var(--line)", background: "var(--canvas)" }}
       >
         <div className="flex flex-wrap items-center gap-3 px-4 py-3">
           <h1>
@@ -541,8 +557,12 @@ export default function Typedeck() {
 
       <div className="flex">
         <aside
-          className="scroll-thin sticky top-[105px] hidden h-[calc(100vh-105px)] w-56 shrink-0 overflow-y-auto border-r p-3 lg:block"
-          style={{ borderColor: "var(--line)" }}
+          className="scroll-thin sticky hidden w-56 shrink-0 overflow-y-auto border-r p-3 lg:block"
+          style={{
+            borderColor: "var(--line)",
+            top: headerHeight,
+            height: `calc(100vh - ${headerHeight}px)`,
+          }}
         >
           <input
             value={search}
