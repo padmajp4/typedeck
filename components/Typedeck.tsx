@@ -10,7 +10,7 @@ import GlyphMap from "./GlyphMap";
 import PairingView, { DEFAULT_PAIRING, type PairingState } from "./PairingView";
 import ColorControls from "./ColorControls";
 import { Chip, NumberField, Segmented } from "./ui";
-import { queryLocalFonts, supportsLocalFonts } from "@/lib/localFonts";
+import { getLocalFontsPermission, queryLocalFonts, supportsLocalFonts } from "@/lib/localFonts";
 import { loadCustomFonts, restoreCustomFonts } from "@/lib/customFonts";
 import { printSpecimen } from "@/lib/printSpecimen";
 import { randomSampleText } from "@/lib/sampleText";
@@ -281,7 +281,25 @@ export default function Typedeck() {
   }, [fonts.length]);
 
   useEffect(() => {
-    setCanUseLocalFonts(supportsLocalFonts());
+    const supported = supportsLocalFonts();
+    setCanUseLocalFonts(supported);
+    if (!supported) return;
+
+    // The browser remembers a grant permanently, but this component's own
+    // state resets on every navigation. Check the real permission before
+    // showing "Grant font access" again, or a user who already said yes gets
+    // asked on every visit to another page and back.
+    let cancelled = false;
+    getLocalFontsPermission().then((state) => {
+      if (cancelled || state !== "granted") return;
+      // queryLocalFonts() resolves immediately with no prompt once granted.
+      queryLocalFonts().then((fonts) => {
+        if (!cancelled) setLocalFonts(fonts);
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Bring back fonts uploaded in a previous session.

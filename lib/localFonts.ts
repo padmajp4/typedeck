@@ -17,6 +17,30 @@ export function supportsLocalFonts() {
   return typeof window !== "undefined" && typeof window.queryLocalFonts === "function";
 }
 
+export type LocalFontPermission = "granted" | "denied" | "prompt" | "unknown";
+
+/**
+ * Reads the real, browser-persisted permission state, so the app can tell a
+ * user who already granted access from one who has not been asked yet. This
+ * matters because component state resets on every navigation, but the
+ * browser's own grant does not — checking it first avoids re-showing the
+ * "Grant font access" button (and re-querying) for someone who already said
+ * yes.
+ */
+export async function getLocalFontsPermission(): Promise<LocalFontPermission> {
+  if (!supportsLocalFonts()) return "unknown";
+  try {
+    // "local-fonts" is not yet in TypeScript's PermissionName union.
+    const status = await navigator.permissions.query({
+      name: "local-fonts" as PermissionName,
+    });
+    return status.state as LocalFontPermission;
+  } catch {
+    // Some browsers support queryLocalFonts but not querying its permission.
+    return "unknown";
+  }
+}
+
 /**
  * The OS exposes no classification for installed fonts, so infer one from the
  * family name. It is a hint for filtering, not a guarantee.
