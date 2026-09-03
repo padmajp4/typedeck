@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #ffffff;
+  --color-surface: #fafafa;
+  --color-line: #e6e6e6;
+  --color-ink: #111111;
+  --color-muted: #6b6b6b;
+  --color-accent: #2563eb;
+}
+
+:root {
+  color-scheme: light;
+  --canvas: #ffffff;
+  --surface: #fafafa;
+  --surface-hover: #f2f2f2;
+  --line: #e6e6e6;
+  --ink: #111111;
+  --muted: #6b6b6b;
+  --accent: #2563eb;
+  --accent-soft: #eff4ff;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #0c0c0d;
+  --surface: #151517;
+  --surface-hover: #1e1e21;
+  --line: #2a2a2e;
+  --ink: #f2f2f3;
+  --muted: #8b8b93;
+  --accent: #6b9bff;
+  --accent-soft: #17202f;
+}
+
+html,
+body {
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Preview text must never wrap mid-glyph-run in a way that hides the sample. */
+.preview-text {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* Thin, unobtrusive scrollbars in the sidebar and font list. */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 999px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+input[type="range"] {
+  accent-color: var(--accent);
+}
