@@ -12,7 +12,7 @@ import {
   type Template,
 } from "./PairingTemplates";
 import { fontFamilyValue, loadFont, resolveWeight } from "@/lib/fontLoader";
-import type { FontItem, PreviewSettings } from "@/lib/types";
+import { TEXT_TRANSFORM, type FontItem, type PreviewSettings } from "@/lib/types";
 
 /** A display face and a text face read well as an opening pair. */
 const SEED_HEADING = ["Playfair Display", "Fraunces", "Instrument Serif", "Poppins"];
@@ -378,6 +378,7 @@ body {
           radius={pairing.radius}
           tokens={tokens}
           headline={settings.text || "Build interfaces at the speed of thought"}
+          headlineTransform={TEXT_TRANSFORM[settings.textCase]}
         />
       </div>
 

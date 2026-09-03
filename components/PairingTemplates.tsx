@@ -76,6 +76,7 @@ export interface PreviewProps {
   radius: number;
   tokens: CanvasTokens;
   headline: string;
+  headlineTransform: "none" | "uppercase" | "lowercase" | "capitalize";
 }
 
 const LEDE =
@@ -87,6 +88,7 @@ function useStyles(p: PreviewProps) {
     fontWeight: p.headingWeight,
     letterSpacing: `${p.letterSpacing - 0.015}em`,
     lineHeight: Math.max(1, p.lineHeight * 0.82),
+    textTransform: p.headlineTransform,
   };
   const body: CSSProperties = {
     fontFamily: p.bodyFamily,

@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, type PreviewSettings } from "./types";
+import { DEFAULT_SETTINGS, type PreviewSettings, type TextCase } from "./types";
 
 /**
  * The full browsing state, encoded into the URL fragment so a view can be
@@ -46,6 +46,7 @@ const KEYS = {
   lineHeight: "lh",
   weight: "w",
   italic: "i",
+  textCase: "tc",
   colorsEnabled: "co",
   textColor: "fg",
   bgColor: "bg",
@@ -80,6 +81,7 @@ export function encodeShareState(state: ShareState): string {
   put(KEYS.lineHeight, settings.lineHeight, DEFAULT_SETTINGS.lineHeight);
   put(KEYS.weight, settings.weight, DEFAULT_SETTINGS.weight);
   put(KEYS.italic, settings.italic, DEFAULT_SETTINGS.italic);
+  put(KEYS.textCase, settings.textCase, DEFAULT_SETTINGS.textCase);
   put(KEYS.colorsEnabled, settings.colorsEnabled, DEFAULT_SETTINGS.colorsEnabled);
   if (settings.colorsEnabled) {
     put(KEYS.textColor, settings.textColor, null);
@@ -145,6 +147,12 @@ export function decodeShareState(fragment: string): Partial<ShareState> | null {
     lineHeight: num(params, KEYS.lineHeight, DEFAULT_SETTINGS.lineHeight, 0.8, 3),
     weight: num(params, KEYS.weight, DEFAULT_SETTINGS.weight, 100, 900),
     italic: params.get(KEYS.italic) === "1",
+    textCase: oneOf(
+      params,
+      KEYS.textCase,
+      ["none", "upper", "lower", "title"] as const,
+      "none",
+    ) as TextCase,
     colorsEnabled: params.get(KEYS.colorsEnabled) === "1",
     textColor: textColor && HEX.test(textColor) ? textColor : DEFAULT_SETTINGS.textColor,
     bgColor: bgColor && HEX.test(bgColor) ? bgColor : DEFAULT_SETTINGS.bgColor,

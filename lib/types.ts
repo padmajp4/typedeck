@@ -55,6 +55,16 @@ export const CATEGORIES: FontCategory[] = [
   "Handwriting",
 ];
 
+export type TextCase = "none" | "upper" | "lower" | "title";
+
+/** Maps a case choice onto the CSS property that performs it. */
+export const TEXT_TRANSFORM: Record<TextCase, "none" | "uppercase" | "lowercase" | "capitalize"> = {
+  none: "none",
+  upper: "uppercase",
+  lower: "lowercase",
+  title: "capitalize",
+};
+
 /** Everything the preview panes render with, shared by the grid and pairing views. */
 export interface PreviewSettings {
   text: string;
@@ -63,6 +73,8 @@ export interface PreviewSettings {
   lineHeight: number;
   weight: number;
   italic: boolean;
+  /** Case applied to preview text without altering what the user typed. */
+  textCase: TextCase;
   /** When false, previews follow the page theme instead of the two colours below. */
   colorsEnabled: boolean;
   textColor: string;
@@ -76,6 +88,7 @@ export const DEFAULT_SETTINGS: PreviewSettings = {
   lineHeight: 1.3,
   weight: 400,
   italic: false,
+  textCase: "none",
   colorsEnabled: false,
   textColor: "#111111",
   bgColor: "#ffffff",

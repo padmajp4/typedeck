@@ -681,6 +681,18 @@ export default function Typedeck() {
             </>
           )}
 
+          <Segmented
+            label="Letter case"
+            value={settings.textCase}
+            onChange={(v) => update("textCase", v)}
+            options={[
+              { value: "none" as const, label: "Aa" },
+              { value: "upper" as const, label: "AA" },
+              { value: "lower" as const, label: "aa" },
+              { value: "title" as const, label: "Ab" },
+            ]}
+          />
+
           {view === "grid" && <ColorControls settings={settings} onChange={update} />}
 
           {view === "grid" && (

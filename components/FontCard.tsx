@@ -8,7 +8,7 @@ import {
   onFontLoaded,
   resolveWeight,
 } from "@/lib/fontLoader";
-import type { FontItem, PreviewSettings } from "@/lib/types";
+import { TEXT_TRANSFORM, type FontItem, type PreviewSettings } from "@/lib/types";
 
 interface Props {
   font: FontItem;
@@ -192,6 +192,7 @@ export default function FontCard({
           lineHeight: settings.lineHeight,
           fontWeight: weight,
           fontStyle: italic ? "italic" : "normal",
+          textTransform: TEXT_TRANSFORM[settings.textCase],
           opacity: ready ? 1 : 0.25,
           transition: "opacity 200ms ease",
           // Custom colours apply to the specimen only, so the card's own
