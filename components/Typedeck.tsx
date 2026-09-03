@@ -73,6 +73,10 @@ export default function Typedeck() {
   const [showExport, setShowExport] = useState(false);
 
   const [scrollSpeed, setScrollSpeed] = useState(0);
+  // Kept separate from scrollSpeed so pausing never discards the chosen
+  // rate — resuming continues at the same speed rather than needing the
+  // slider dragged back up.
+  const [scrollRunning, setScrollRunning] = useState(false);
   const [view, setView] = useState<View>("grid");
   const [pairHeading, setPairHeading] = useState<string | null>(null);
   const [pairBody, setPairBody] = useState<string | null>(null);
@@ -344,7 +348,7 @@ export default function Typedeck() {
   // The auto-scroll control is hidden outside the grid, so make sure a running
   // scroll cannot be stranded with no way to stop it.
   useEffect(() => {
-    if (view !== "grid") setScrollSpeed(0);
+    if (view !== "grid") setScrollRunning(false);
   }, [view]);
 
   useEffect(() => {
@@ -360,20 +364,21 @@ export default function Typedeck() {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
-  // Auto-scroll the page at the chosen speed, pausing at the bottom.
+  // Auto-scroll the page at the chosen speed while running, pausing itself
+  // at the bottom rather than resetting the chosen speed to zero.
   useEffect(() => {
-    if (scrollSpeed <= 0) return;
+    if (!scrollRunning || scrollSpeed <= 0) return;
     let frame = 0;
     const step = () => {
       const atBottom =
         window.scrollY + window.innerHeight >= document.body.scrollHeight - 2;
-      if (atBottom) setScrollSpeed(0);
+      if (atBottom) setScrollRunning(false);
       else window.scrollBy(0, scrollSpeed);
       frame = requestAnimationFrame(step);
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, [scrollSpeed]);
+  }, [scrollRunning, scrollSpeed]);
 
   const update = useCallback(
     <K extends keyof PreviewSettings>(key: K, value: PreviewSettings[K]) =>
@@ -733,11 +738,32 @@ export default function Typedeck() {
                 max={5}
                 step={0.5}
                 value={scrollSpeed}
-                onChange={(e) => setScrollSpeed(Number(e.target.value))}
+                onChange={(e) => {
+                  const next = Number(e.target.value);
+                  setScrollSpeed(next);
+                  // Dragging up from a stop starts it moving, matching what
+                  // the slider visually promises; dragging to 0 stops it.
+                  setScrollRunning(next > 0);
+                }}
                 aria-label="Auto-scroll speed"
                 className="h-1 w-20 cursor-pointer"
               />
               <span className="w-8 tabular-nums">{scrollSpeed.toFixed(1)}×</span>
+              <button
+                type="button"
+                onClick={() => setScrollRunning((running) => !running)}
+                disabled={scrollSpeed <= 0}
+                title={scrollRunning ? "Pause auto-scroll" : "Resume auto-scroll"}
+                aria-label={scrollRunning ? "Pause auto-scroll" : "Resume auto-scroll"}
+                aria-pressed={scrollRunning}
+                className="grid h-6 w-6 place-items-center rounded-md text-[13px] leading-none disabled:opacity-30"
+                style={{
+                  background: scrollRunning ? "var(--accent-soft)" : "var(--surface)",
+                  color: scrollRunning ? "var(--accent)" : "var(--muted)",
+                }}
+              >
+                {scrollRunning ? "⏸" : "▶"}
+              </button>
             </label>
           )}
 
