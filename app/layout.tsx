@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import { SITE } from "@/lib/site";
 
 // Self-hosted at build time, so the wordmark never flashes a fallback face.
 const display = Space_Grotesk({
@@ -11,9 +12,55 @@ const display = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Typedeck — Preview and compare thousands of fonts",
-  description:
-    "Preview Google Fonts, Fontshare and your locally installed fonts side by side with live custom text, size, spacing and leading controls.",
+  // Makes every relative URL below (and the generated image tags) absolute.
+  metadataBase: new URL(SITE.url),
+  title: {
+    default: SITE.title,
+    template: `%s — ${SITE.name}`,
+  },
+  description: SITE.description,
+  applicationName: SITE.name,
+  keywords: [...SITE.keywords],
+  authors: [{ name: SITE.author }],
+  creator: SITE.author,
+  publisher: SITE.author,
+  category: "technology",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: SITE.name,
+    title: SITE.title,
+    description: SITE.description,
+    url: "/",
+    locale: SITE.locale,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE.title,
+    description: SITE.description,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  formatDetection: { email: false, address: false, telephone: false },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Matches the two --canvas values so mobile browser chrome tracks the theme.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0c0d" },
+  ],
 };
 
 /**
