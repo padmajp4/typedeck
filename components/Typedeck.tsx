@@ -551,9 +551,14 @@ export default function Typedeck() {
           >
             <span aria-hidden="true">☕</span> Buy me a coffee
           </a>
-          <Link href="/terms" className="mt-0.5 w-fit hover:underline">
-            Terms of Use
-          </Link>
+          <div className="mt-0.5 flex items-center gap-3">
+            <Link href="/about" className="w-fit hover:underline">
+              How to use
+            </Link>
+            <Link href="/terms" className="w-fit hover:underline">
+              Terms of Use
+            </Link>
+          </div>
         </div>
     </>
   );
