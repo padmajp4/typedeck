@@ -1,8 +1,8 @@
 # Typedeck
 
 Preview and compare thousands of typefaces side by side with live text, size,
-spacing and leading controls — a browser-based font browser in the spirit of
-Wordmark.it, with no uploads.
+spacing and leading controls. Everything runs in the browser, with no uploads
+and no sign-up.
 
 ## Font sources
 
