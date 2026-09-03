@@ -21,6 +21,9 @@ export const SITE = {
   description:
     "Preview and compare over 2,000 typefaces side by side. Browse Google Fonts, Fontshare and your own installed or uploaded fonts with live text, size, spacing and leading controls, font pairing and a WCAG contrast checker. Free, no sign-up.",
   locale: "en_GB",
+  /** Microsoft Clarity project id. Public by design — it ships in client JS. */
+  clarityId: "ycegm5jlij",
+  supportUrl: "https://buymeacoffee.com/padmaj",
   author: "Padmaj P Kumar",
   keywords: [
     "font preview",

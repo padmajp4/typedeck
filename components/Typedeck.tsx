@@ -13,6 +13,7 @@ import { queryLocalFonts, supportsLocalFonts } from "@/lib/localFonts";
 import { loadCustomFonts } from "@/lib/customFonts";
 import { decodeShareState, encodeShareState } from "@/lib/permalink";
 import { usePersistentSet, usePersistentState } from "@/lib/useStore";
+import { SITE } from "@/lib/site";
 import {
   CATEGORIES,
   DEFAULT_SETTINGS,
@@ -510,7 +511,16 @@ export default function Typedeck() {
               padmajp.com
             </a>
           </p>
-          <Link href="/terms" className="hover:underline">
+          <a
+            href={SITE.supportUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-0.5 inline-flex w-fit items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium"
+            style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+          >
+            <span aria-hidden="true">☕</span> Buy me a coffee
+          </a>
+          <Link href="/terms" className="mt-0.5 w-fit hover:underline">
             Terms of Use
           </Link>
         </div>

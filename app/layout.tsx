@@ -77,11 +77,28 @@ try {
 } catch (e) {}
 `;
 
+/**
+ * Microsoft Clarity. The tag injects its own async script, so it does not
+ * block rendering. Loaded only in production builds, to keep local development
+ * sessions out of the analytics.
+ */
+const CLARITY_SCRIPT = `
+(function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+})(window, document, "clarity", "script", "${SITE.clarityId}");
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={display.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        {process.env.NODE_ENV === "production" && (
+          <script dangerouslySetInnerHTML={{ __html: CLARITY_SCRIPT }} />
+        )}
+        <link rel="preconnect" href="https://www.clarity.ms" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="" />
