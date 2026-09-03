@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TypeScope — Preview and compare thousands of fonts",
+  title: "Typedeck — Preview and compare thousands of fonts",
   description:
     "Preview Google Fonts, Fontshare and your locally installed fonts side by side with live custom text, size, spacing and leading controls.",
 };
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
  */
 const THEME_SCRIPT = `
 try {
-  var stored = localStorage.getItem("typescope:theme");
+  var stored = localStorage.getItem("typedeck:theme");
   var theme = stored ? JSON.parse(stored) : null;
   if (theme !== "light" && theme !== "dark") {
     theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";

@@ -1,5 +1,5 @@
-import TypeScope from "@/components/TypeScope";
+import Typedeck from "@/components/Typedeck";
 
 export default function Page() {
-  return <TypeScope />;
+  return <Typedeck />;
 }

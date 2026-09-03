@@ -51,7 +51,7 @@ function shuffle<T>(items: T[], seed: number) {
   return result;
 }
 
-export default function TypeScope() {
+export default function Typedeck() {
   const [remoteFonts, setRemoteFonts] = useState<FontItem[]>([]);
   const [localFonts, setLocalFonts] = useState<FontItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -257,7 +257,7 @@ export default function TypeScope() {
         style={{ borderColor: "var(--line)", background: "color-mix(in srgb, var(--canvas) 88%, transparent)" }}
       >
         <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-          <h1 className="text-[15px] font-semibold tracking-tight">TypeScope</h1>
+          <h1 className="text-[15px] font-semibold tracking-tight">Typedeck</h1>
 
           <input
             value={settings.text}

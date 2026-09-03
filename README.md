@@ -1,4 +1,4 @@
-# TypeScope
+# Typedeck
 
 Preview and compare thousands of typefaces side by side with live text, size,
 spacing and leading controls — a browser-based font browser in the spirit of

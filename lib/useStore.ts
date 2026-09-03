@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-const PREFIX = "typescope:";
+const PREFIX = "typedeck:";
 
 /**
  * localStorage-backed state. Reads happen after mount so server and first
