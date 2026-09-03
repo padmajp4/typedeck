@@ -18,6 +18,7 @@ interface Props {
   onToggleFavorite: (id: string) => void;
   onToggleSelected: (id: string) => void;
   onToggleHidden: (id: string) => void;
+  onOpenGlyphs: (font: FontItem) => void;
 }
 
 const SOURCE_LABEL: Record<FontItem["source"], string> = {
@@ -64,6 +65,7 @@ export default function FontCard({
   onToggleFavorite,
   onToggleSelected,
   onToggleHidden,
+  onOpenGlyphs,
 }: Props) {
   const ref = useRef<HTMLElement>(null);
   const [copied, setCopied] = useState(false);
@@ -143,6 +145,9 @@ export default function FontCard({
         >
           <IconButton label="Copy font name" onClick={copyName}>
             {copied ? "✓" : "⧉"}
+          </IconButton>
+          <IconButton label="View character set" onClick={() => onOpenGlyphs(font)}>
+            Aa
           </IconButton>
           <IconButton
             label={isSelected ? "Deselect" : "Select for export"}

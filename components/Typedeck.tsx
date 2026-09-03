@@ -5,6 +5,7 @@ import Link from "next/link";
 import FontCard from "./FontCard";
 import Logo from "./Logo";
 import ExportPanel from "./ExportPanel";
+import GlyphMap from "./GlyphMap";
 import PairingView, { DEFAULT_PAIRING, type PairingState } from "./PairingView";
 import ColorControls from "./ColorControls";
 import { Chip, NumberField, Segmented } from "./ui";
@@ -87,6 +88,10 @@ export default function Typedeck() {
   const [dragging, setDragging] = useState(false);
   const [uploadNote, setUploadNote] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  // Below the lg breakpoint the sidebar is hidden, so its controls live in a
+  // sheet instead; without it search and filters are unreachable on a phone.
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [glyphFont, setGlyphFont] = useState<FontItem | null>(null);
   // Feature detection must run after mount so SSR and hydration agree.
   const [canUseLocalFonts, setCanUseLocalFonts] = useState(false);
 
@@ -337,6 +342,15 @@ export default function Typedeck() {
   }, [view]);
 
   useEffect(() => {
+    if (!filtersOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFiltersOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [filtersOpen]);
+
+  useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
@@ -367,6 +381,141 @@ export default function Typedeck() {
   );
 
   const shown = fonts.slice(0, visible);
+
+  /**
+   * Rendered twice: in the desktop sidebar and in the mobile sheet. Kept as
+   * one expression so the two can never drift apart.
+   */
+  const filterPanel = (
+    <>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search fonts…"
+          aria-label="Search fonts"
+          className="mb-3 w-full rounded-lg border px-2.5 py-1.5 text-[13px] outline-none"
+          style={{ borderColor: "var(--line)", background: "var(--canvas)", color: "var(--ink)" }}
+        />
+
+        <p className="px-2.5 pb-1 text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--muted)" }}>
+          Source
+        </p>
+        {(
+          [
+            ["all", "All fonts"],
+            ["local", "Your fonts"],
+            ["custom", "Uploaded"],
+            ["google", "Google Fonts"],
+            ["fontshare", "Fontshare"],
+            ["favorites", "Favourites"],
+            ["selected", "Selected"],
+            ["hidden", "Hidden"],
+          ] as [SourceTab, string][]
+        ).map(([value, label]) => (
+          <Chip key={value} active={tab === value} onClick={() => setTab(value)} count={counts[value]}>
+            {label}
+          </Chip>
+        ))}
+
+        {localFonts.length === 0 && (
+          <div className="mt-2 px-2.5">
+            {canUseLocalFonts ? (
+              <button
+                type="button"
+                onClick={grantLocalFonts}
+                className="w-full rounded-lg px-2.5 py-1.5 text-[12px] font-medium"
+                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+              >
+                Grant font access
+              </button>
+            ) : (
+              <p className="text-[11px] leading-snug" style={{ color: "var(--muted)" }}>
+                Local fonts need a Chromium browser.
+              </p>
+            )}
+            {localError && (
+              <p className="mt-1 text-[11px] leading-snug" style={{ color: "var(--muted)" }}>
+                {localError}
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="mt-2 px-2.5">
+          <label
+            className="block w-full cursor-pointer rounded-lg border border-dashed px-2.5 py-2 text-center text-[12px]"
+            style={{ borderColor: "var(--line)", color: "var(--muted)" }}
+          >
+            Upload font files
+            <input
+              type="file"
+              multiple
+              accept=".ttf,.otf,.woff,.woff2,.ttc"
+              className="sr-only"
+              onChange={(e) => {
+                void addCustomFonts([...(e.target.files ?? [])]);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <p className="mt-1 text-[11px] leading-snug" style={{ color: "var(--muted)" }}>
+            {uploadNote ?? "Or drop them anywhere. Files stay in your browser."}
+          </p>
+        </div>
+
+        <p className="mt-4 px-2.5 pb-1 text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--muted)" }}>
+          Category
+        </p>
+        <Chip active={category === "all"} onClick={() => setCategory("all")}>
+          All categories
+        </Chip>
+        {CATEGORIES.map((c) => (
+          <Chip key={c} active={category === c} onClick={() => setCategory(c)}>
+            {c}
+          </Chip>
+        ))}
+
+        {(favorites.count > 0 || hidden.count > 0 || selected.count > 0) && (
+          <div className="mt-4 flex flex-col gap-1 border-t pt-3" style={{ borderColor: "var(--line)" }}>
+            {selected.count > 0 && (
+              <Chip active={false} onClick={selected.clear}>
+                Clear selection
+              </Chip>
+            )}
+            {hidden.count > 0 && (
+              <Chip active={false} onClick={hidden.clear}>
+                Unhide all
+              </Chip>
+            )}
+            {favorites.count > 0 && (
+              <Chip active={false} onClick={favorites.clear}>
+                Clear favourites
+              </Chip>
+            )}
+          </div>
+        )}
+        <div
+          className="mt-auto flex flex-col gap-1 border-t pt-3 text-[11px]"
+          style={{ borderColor: "var(--line)", color: "var(--muted)" }}
+        >
+          <p>
+            Made with <span style={{ color: "#e0245e" }}>&hearts;</span> by{" "}
+            <a
+              href="https://padmajp.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+              style={{ color: "var(--ink)" }}
+            >
+              padmajp.com
+            </a>
+          </p>
+          <Link href="/terms" className="hover:underline">
+            Terms of Use
+          </Link>
+        </div>
+    </>
+  );
 
   return (
     <div
@@ -541,6 +690,15 @@ export default function Typedeck() {
             </label>
           )}
 
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className="rounded-lg border px-2.5 py-1.5 text-[12px] font-medium lg:hidden"
+            style={{ borderColor: "var(--line)", color: "var(--ink)" }}
+          >
+            Filters
+          </button>
+
           <div className="ml-auto flex items-center gap-2">
             <span className="text-[12px] tabular-nums" style={{ color: "var(--muted)" }}>
               {fonts.length.toLocaleString()} font{fonts.length === 1 ? "" : "s"}
@@ -576,132 +734,7 @@ export default function Typedeck() {
             height: `calc(100vh - ${headerHeight}px)`,
           }}
         >
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search fonts…"
-            aria-label="Search fonts"
-            className="mb-3 w-full rounded-lg border px-2.5 py-1.5 text-[13px] outline-none"
-            style={{ borderColor: "var(--line)", background: "var(--canvas)", color: "var(--ink)" }}
-          />
-
-          <p className="px-2.5 pb-1 text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--muted)" }}>
-            Source
-          </p>
-          {(
-            [
-              ["all", "All fonts"],
-              ["local", "Your fonts"],
-              ["custom", "Uploaded"],
-              ["google", "Google Fonts"],
-              ["fontshare", "Fontshare"],
-              ["favorites", "Favourites"],
-              ["selected", "Selected"],
-              ["hidden", "Hidden"],
-            ] as [SourceTab, string][]
-          ).map(([value, label]) => (
-            <Chip key={value} active={tab === value} onClick={() => setTab(value)} count={counts[value]}>
-              {label}
-            </Chip>
-          ))}
-
-          {localFonts.length === 0 && (
-            <div className="mt-2 px-2.5">
-              {canUseLocalFonts ? (
-                <button
-                  type="button"
-                  onClick={grantLocalFonts}
-                  className="w-full rounded-lg px-2.5 py-1.5 text-[12px] font-medium"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-                >
-                  Grant font access
-                </button>
-              ) : (
-                <p className="text-[11px] leading-snug" style={{ color: "var(--muted)" }}>
-                  Local fonts need a Chromium browser.
-                </p>
-              )}
-              {localError && (
-                <p className="mt-1 text-[11px] leading-snug" style={{ color: "var(--muted)" }}>
-                  {localError}
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="mt-2 px-2.5">
-            <label
-              className="block w-full cursor-pointer rounded-lg border border-dashed px-2.5 py-2 text-center text-[12px]"
-              style={{ borderColor: "var(--line)", color: "var(--muted)" }}
-            >
-              Upload font files
-              <input
-                type="file"
-                multiple
-                accept=".ttf,.otf,.woff,.woff2,.ttc"
-                className="sr-only"
-                onChange={(e) => {
-                  void addCustomFonts([...(e.target.files ?? [])]);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-            <p className="mt-1 text-[11px] leading-snug" style={{ color: "var(--muted)" }}>
-              {uploadNote ?? "Or drop them anywhere. Files stay in your browser."}
-            </p>
-          </div>
-
-          <p className="mt-4 px-2.5 pb-1 text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--muted)" }}>
-            Category
-          </p>
-          <Chip active={category === "all"} onClick={() => setCategory("all")}>
-            All categories
-          </Chip>
-          {CATEGORIES.map((c) => (
-            <Chip key={c} active={category === c} onClick={() => setCategory(c)}>
-              {c}
-            </Chip>
-          ))}
-
-          {(favorites.count > 0 || hidden.count > 0 || selected.count > 0) && (
-            <div className="mt-4 flex flex-col gap-1 border-t pt-3" style={{ borderColor: "var(--line)" }}>
-              {selected.count > 0 && (
-                <Chip active={false} onClick={selected.clear}>
-                  Clear selection
-                </Chip>
-              )}
-              {hidden.count > 0 && (
-                <Chip active={false} onClick={hidden.clear}>
-                  Unhide all
-                </Chip>
-              )}
-              {favorites.count > 0 && (
-                <Chip active={false} onClick={favorites.clear}>
-                  Clear favourites
-                </Chip>
-              )}
-            </div>
-          )}
-          <div
-            className="mt-auto flex flex-col gap-1 border-t pt-3 text-[11px]"
-            style={{ borderColor: "var(--line)", color: "var(--muted)" }}
-          >
-            <p>
-              Made with <span style={{ color: "#e0245e" }}>&hearts;</span> by{" "}
-              <a
-                href="https://padmajp.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline"
-                style={{ color: "var(--ink)" }}
-              >
-                padmajp.com
-              </a>
-            </p>
-            <Link href="/terms" className="hover:underline">
-              Terms of Use
-            </Link>
-          </div>
+          {filterPanel}
         </aside>
 
         <main className="min-w-0 flex-1 p-4">
@@ -749,6 +782,7 @@ export default function Typedeck() {
                     onToggleFavorite={favorites.toggle}
                     onToggleSelected={selected.toggle}
                     onToggleHidden={hidden.toggle}
+                    onOpenGlyphs={setGlyphFont}
                   />
                 ))}
               </div>
@@ -758,6 +792,43 @@ export default function Typedeck() {
           )}
         </main>
       </div>
+
+      {filtersOpen && (
+        <div
+          className="fixed inset-0 z-40 flex lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Filters"
+        >
+          <button
+            type="button"
+            aria-label="Close filters"
+            onClick={() => setFiltersOpen(false)}
+            className="absolute inset-0 h-full w-full"
+            style={{ background: "rgb(0 0 0 / 0.45)" }}
+          />
+          <div
+            className="scroll-thin relative ml-auto flex h-full w-[86%] max-w-xs flex-col overflow-y-auto border-l p-3"
+            style={{ background: "var(--canvas)", borderColor: "var(--line)" }}
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[13px] font-semibold">Filters</span>
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                aria-label="Close filters"
+                className="grid h-7 w-7 place-items-center rounded-md text-[15px]"
+                style={{ color: "var(--muted)" }}
+              >
+                ×
+              </button>
+            </div>
+            {filterPanel}
+          </div>
+        </div>
+      )}
+
+      {glyphFont && <GlyphMap font={glyphFont} onClose={() => setGlyphFont(null)} />}
 
       {showExport && (
         <ExportPanel fonts={selectedFonts} settings={settings} onClose={() => setShowExport(false)} />
