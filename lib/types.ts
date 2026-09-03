@@ -1,4 +1,5 @@
-export type FontSource = "google" | "fontshare" | "local";
+/** "custom" covers font files the user drops onto the page this session. */
+export type FontSource = "google" | "fontshare" | "local" | "custom";
 
 export type FontCategory =
   | "Sans Serif"
@@ -53,3 +54,29 @@ export const CATEGORIES: FontCategory[] = [
   "Display",
   "Handwriting",
 ];
+
+/** Everything the preview panes render with, shared by the grid and pairing views. */
+export interface PreviewSettings {
+  text: string;
+  size: number;
+  letterSpacing: number;
+  lineHeight: number;
+  weight: number;
+  italic: boolean;
+  /** When false, previews follow the page theme instead of the two colours below. */
+  colorsEnabled: boolean;
+  textColor: string;
+  bgColor: string;
+}
+
+export const DEFAULT_SETTINGS: PreviewSettings = {
+  text: "The quick brown fox jumps over the lazy dog",
+  size: 48,
+  letterSpacing: 0,
+  lineHeight: 1.3,
+  weight: 400,
+  italic: false,
+  colorsEnabled: false,
+  textColor: "#111111",
+  bgColor: "#ffffff",
+};

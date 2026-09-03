@@ -1,16 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import FontCard, { type PreviewSettings } from "./FontCard";
+import FontCard from "./FontCard";
+import Logo from "./Logo";
 import ExportPanel from "./ExportPanel";
+import PairingView from "./PairingView";
+import ColorControls from "./ColorControls";
 import { Chip, NumberField, Segmented } from "./ui";
 import { queryLocalFonts, supportsLocalFonts } from "@/lib/localFonts";
+import { loadCustomFonts } from "@/lib/customFonts";
+import { decodeShareState, encodeShareState } from "@/lib/permalink";
 import { usePersistentSet, usePersistentState } from "@/lib/useStore";
-import { CATEGORIES, type FontCategory, type FontItem } from "@/lib/types";
+import {
+  CATEGORIES,
+  DEFAULT_SETTINGS,
+  type FontCategory,
+  type FontItem,
+  type PreviewSettings,
+} from "@/lib/types";
 
 type SourceTab =
   | "all"
   | "local"
+  | "custom"
   | "google"
   | "fontshare"
   | "favorites"
@@ -19,14 +31,7 @@ type SourceTab =
 
 type SortMode = "az" | "za" | "popular" | "recent" | "random";
 
-const DEFAULT_SETTINGS: PreviewSettings = {
-  text: "The quick brown fox jumps over the lazy dog",
-  size: 48,
-  letterSpacing: 0,
-  lineHeight: 1.3,
-  weight: 400,
-  italic: false,
-};
+type View = "grid" | "pair";
 
 /** How many cards to add each time the infinite-scroll sentinel appears. */
 const PAGE_SIZE = 48;
@@ -73,6 +78,13 @@ export default function Typedeck() {
   const [showExport, setShowExport] = useState(false);
 
   const [scrollSpeed, setScrollSpeed] = useState(0);
+  const [view, setView] = useState<View>("grid");
+  const [pairHeading, setPairHeading] = useState<string | null>(null);
+  const [pairBody, setPairBody] = useState<string | null>(null);
+  const [customFonts, setCustomFonts] = useState<FontItem[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const [uploadNote, setUploadNote] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
   // Feature detection must run after mount so SSR and hydration agree.
   const [canUseLocalFonts, setCanUseLocalFonts] = useState(false);
 
@@ -117,8 +129,8 @@ export default function Typedeck() {
   }, []);
 
   const allFonts = useMemo(
-    () => [...localFonts, ...remoteFonts],
-    [localFonts, remoteFonts],
+    () => [...customFonts, ...localFonts, ...remoteFonts],
+    [customFonts, localFonts, remoteFonts],
   );
 
   async function grantLocalFonts() {
@@ -133,17 +145,47 @@ export default function Typedeck() {
     }
   }
 
+  /** Register dropped or picked font files. Nothing leaves the browser. */
+  const addCustomFonts = useCallback(async (files: File[]) => {
+    if (!files.length) return;
+    const { fonts, rejected } = await loadCustomFonts(files);
+
+    setCustomFonts((current) => {
+      // A re-uploaded family replaces its earlier registration.
+      const incoming = new Set(fonts.map((f) => f.id));
+      return [...fonts, ...current.filter((f) => !incoming.has(f.id))];
+    });
+
+    if (fonts.length) setTab("custom");
+    setUploadNote(
+      rejected.length
+        ? `Could not read ${rejected.length} file${rejected.length === 1 ? "" : "s"}.`
+        : `Added ${fonts.length} font${fonts.length === 1 ? "" : "s"}.`,
+    );
+    setTimeout(() => setUploadNote(null), 4000);
+  }, []);
+
   const counts = useMemo(
     () => ({
       all: allFonts.filter((f) => !hidden.set.has(f.id)).length,
       local: localFonts.length,
+      custom: customFonts.length,
       google: remoteFonts.filter((f) => f.source === "google").length,
       fontshare: remoteFonts.filter((f) => f.source === "fontshare").length,
       favorites: favorites.count,
       selected: selected.count,
       hidden: hidden.count,
     }),
-    [allFonts, localFonts, remoteFonts, favorites.count, selected.count, hidden.count, hidden.set],
+    [
+      allFonts,
+      localFonts,
+      customFonts,
+      remoteFonts,
+      favorites.count,
+      selected.count,
+      hidden.count,
+      hidden.set,
+    ],
   );
 
   const fonts = useMemo(() => {
@@ -158,6 +200,7 @@ export default function Typedeck() {
         case "hidden":
           return hidden.set.has(font.id);
         case "local":
+        case "custom":
         case "google":
         case "fontshare":
           return font.source === tab && !hidden.set.has(font.id);
@@ -218,6 +261,56 @@ export default function Typedeck() {
     setCanUseLocalFonts(supportsLocalFonts());
   }, []);
 
+  // A shared link wins over whatever was last stored locally. This effect is
+  // declared after the persistence hooks, so it runs once their reads land.
+  useEffect(() => {
+    const shared = decodeShareState(window.location.hash);
+    if (!shared) return;
+    if (shared.settings) setSettings(shared.settings);
+    if (shared.tab) setTab(shared.tab as SourceTab);
+    if (shared.category) setCategory(shared.category as FontCategory | "all");
+    if (shared.search !== undefined) setSearch(shared.search);
+    if (shared.sort) setSort(shared.sort as SortMode);
+    if (shared.columns) setColumns(shared.columns);
+    if (shared.view) setView(shared.view as View);
+    setPairHeading(shared.pairHeading ?? null);
+    setPairBody(shared.pairBody ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Put the current view on the clipboard as a self-contained link. */
+  async function copyShareLink() {
+    const fragment = encodeShareState({
+      settings,
+      tab,
+      category,
+      search,
+      sort,
+      columns,
+      view,
+      pairHeading,
+      pairBody,
+    });
+    const url = `${window.location.origin}${window.location.pathname}${
+      fragment ? `#${fragment}` : ""
+    }`;
+    // Reflect the state in the address bar too, without adding history entries.
+    history.replaceState(null, "", fragment ? `#${fragment}` : window.location.pathname);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 1500);
+    } catch {
+      // Clipboard may be blocked; the address bar now holds the same link.
+    }
+  }
+
+  // The auto-scroll control is hidden outside the grid, so make sure a running
+  // scroll cannot be stranded with no way to stop it.
+  useEffect(() => {
+    if (view !== "grid") setScrollSpeed(0);
+  }, [view]);
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
@@ -251,13 +344,45 @@ export default function Typedeck() {
   const shown = fonts.slice(0, visible);
 
   return (
-    <div className="min-h-screen">
+    <div
+      className="min-h-screen"
+      onDragOver={(e) => {
+        // Only react to an actual file drag, not text selections.
+        if (!e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget === e.target) setDragging(false);
+      }}
+      onDrop={(e) => {
+        if (!e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        setDragging(false);
+        void addCustomFonts([...e.dataTransfer.files]);
+      }}
+    >
+      {dragging && (
+        <div
+          className="pointer-events-none fixed inset-0 z-50 grid place-items-center"
+          style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}
+        >
+          <p
+            className="rounded-xl border-2 border-dashed px-6 py-4 text-[14px] font-medium"
+            style={{ borderColor: "var(--accent)", background: "var(--canvas)", color: "var(--accent)" }}
+          >
+            Drop font files to preview them
+          </p>
+        </div>
+      )}
       <header
         className="sticky top-0 z-30 border-b backdrop-blur"
         style={{ borderColor: "var(--line)", background: "color-mix(in srgb, var(--canvas) 88%, transparent)" }}
       >
         <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-          <h1 className="text-[15px] font-semibold tracking-tight">Typedeck</h1>
+          <h1>
+            <Logo />
+          </h1>
 
           <input
             value={settings.text}
@@ -317,63 +442,80 @@ export default function Typedeck() {
           style={{ borderColor: "var(--line)" }}
         >
           <Segmented
-            label="Columns"
-            value={columns}
-            onChange={setColumns}
-            options={[1, 2, 3, 4, 6].map((n) => ({ value: n, label: String(n) }))}
-          />
-          <Segmented
-            label="Sort order"
-            value={sort}
-            onChange={(value) => {
-              setSort(value);
-              if (value === "random") setSeed(Date.now() % 100000);
-            }}
+            label="View"
+            value={view}
+            onChange={setView}
             options={[
-              { value: "popular", label: "Popular" },
-              { value: "az", label: "A–Z" },
-              { value: "za", label: "Z–A" },
-              { value: "recent", label: "Recent" },
-              { value: "random", label: "Random" },
+              { value: "grid" as View, label: "Grid" },
+              { value: "pair" as View, label: "Pair" },
             ]}
           />
-          <Segmented
-            label="Preview weight"
-            value={settings.weight}
-            onChange={(v) => update("weight", v)}
-            options={[300, 400, 500, 700, 900].map((w) => ({ value: w, label: String(w) }))}
-          />
-          <button
-            type="button"
-            onClick={() => update("italic", !settings.italic)}
-            aria-pressed={settings.italic}
-            className="rounded-lg px-2.5 py-1 text-[12px] italic"
-            style={{
-              background: settings.italic ? "var(--accent-soft)" : "var(--surface)",
-              color: settings.italic ? "var(--accent)" : "var(--muted)",
-            }}
-          >
-            Italic
-          </button>
+          {view === "grid" && (
+            <>
+              <Segmented
+                label="Columns"
+                value={columns}
+                onChange={setColumns}
+                options={[1, 2, 3, 4, 6].map((n) => ({ value: n, label: String(n) }))}
+              />
+              <Segmented
+                label="Sort order"
+                value={sort}
+                onChange={(value) => {
+                  setSort(value);
+                  if (value === "random") setSeed(Date.now() % 100000);
+                }}
+                options={[
+                  { value: "popular", label: "Popular" },
+                  { value: "az", label: "A–Z" },
+                  { value: "za", label: "Z–A" },
+                  { value: "recent", label: "Recent" },
+                  { value: "random", label: "Random" },
+                ]}
+              />
+              <Segmented
+                label="Preview weight"
+                value={settings.weight}
+                onChange={(v) => update("weight", v)}
+                options={[300, 400, 500, 700, 900].map((w) => ({ value: w, label: String(w) }))}
+              />
+              <button
+                type="button"
+                onClick={() => update("italic", !settings.italic)}
+                aria-pressed={settings.italic}
+                className="rounded-lg px-2.5 py-1 text-[12px] italic"
+                style={{
+                  background: settings.italic ? "var(--accent-soft)" : "var(--surface)",
+                  color: settings.italic ? "var(--accent)" : "var(--muted)",
+                }}
+              >
+                Italic
+              </button>
+            </>
+          )}
 
-          <label className="flex items-center gap-2 text-[12px]" style={{ color: "var(--muted)" }}>
-            <span>Auto-scroll</span>
-            <input
-              type="range"
-              min={0}
-              max={5}
-              step={0.5}
-              value={scrollSpeed}
-              onChange={(e) => setScrollSpeed(Number(e.target.value))}
-              aria-label="Auto-scroll speed"
-              className="h-1 w-20 cursor-pointer"
-            />
-            <span className="w-8 tabular-nums">{scrollSpeed.toFixed(1)}×</span>
-          </label>
+          <ColorControls settings={settings} onChange={update} />
+
+          {view === "grid" && (
+            <label className="flex items-center gap-2 text-[12px]" style={{ color: "var(--muted)" }}>
+              <span>Auto-scroll</span>
+              <input
+                type="range"
+                min={0}
+                max={5}
+                step={0.5}
+                value={scrollSpeed}
+                onChange={(e) => setScrollSpeed(Number(e.target.value))}
+                aria-label="Auto-scroll speed"
+                className="h-1 w-20 cursor-pointer"
+              />
+              <span className="w-8 tabular-nums">{scrollSpeed.toFixed(1)}×</span>
+            </label>
+          )}
 
           <div className="ml-auto flex items-center gap-2">
             <span className="text-[12px] tabular-nums" style={{ color: "var(--muted)" }}>
-              {fonts.length.toLocaleString()} fonts
+              {fonts.length.toLocaleString()} font{fonts.length === 1 ? "" : "s"}
             </span>
             <button
               type="button"
@@ -383,6 +525,15 @@ export default function Typedeck() {
               style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
             >
               Export ({selectedFonts.length})
+            </button>
+            <button
+              type="button"
+              onClick={copyShareLink}
+              title="Copy a link to this exact view"
+              className="rounded-lg border px-2.5 py-1.5 text-[12px]"
+              style={{ borderColor: "var(--line)", color: "var(--muted)" }}
+            >
+              {copiedLink ? "Link copied" : "Share"}
             </button>
           </div>
         </div>
@@ -409,6 +560,7 @@ export default function Typedeck() {
             [
               ["all", "All fonts"],
               ["local", "Your fonts"],
+              ["custom", "Uploaded"],
               ["google", "Google Fonts"],
               ["fontshare", "Fontshare"],
               ["favorites", "Favourites"],
@@ -444,6 +596,28 @@ export default function Typedeck() {
               )}
             </div>
           )}
+
+          <div className="mt-2 px-2.5">
+            <label
+              className="block w-full cursor-pointer rounded-lg border border-dashed px-2.5 py-2 text-center text-[12px]"
+              style={{ borderColor: "var(--line)", color: "var(--muted)" }}
+            >
+              Upload font files
+              <input
+                type="file"
+                multiple
+                accept=".ttf,.otf,.woff,.woff2,.ttc"
+                className="sr-only"
+                onChange={(e) => {
+                  void addCustomFonts([...(e.target.files ?? [])]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <p className="mt-1 text-[11px] leading-snug" style={{ color: "var(--muted)" }}>
+              {uploadNote ?? "Or drop them anywhere. Files stay in your browser."}
+            </p>
+          </div>
 
           <p className="mt-4 px-2.5 pb-1 text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--muted)" }}>
             Category
@@ -491,28 +665,41 @@ export default function Typedeck() {
             </p>
           )}
 
-          {!loading && !loadError && fonts.length === 0 && (
+          {!loading && !loadError && view === "grid" && fonts.length === 0 && (
             <p className="p-8 text-center text-[13px]" style={{ color: "var(--muted)" }}>
               No fonts match these filters.
             </p>
           )}
 
-          <div className={`grid gap-3 ${COLUMN_CLASS[columns] ?? COLUMN_CLASS[2]}`}>
-            {shown.map((font) => (
-              <FontCard
-                key={font.id}
-                font={font}
-                settings={settings}
-                isFavorite={favorites.set.has(font.id)}
-                isSelected={selected.set.has(font.id)}
-                onToggleFavorite={favorites.toggle}
-                onToggleSelected={selected.toggle}
-                onToggleHidden={hidden.toggle}
-              />
-            ))}
-          </div>
+          {view === "pair" ? (
+            <PairingView
+              fonts={fonts.length ? fonts : allFonts}
+              settings={settings}
+              headingId={pairHeading}
+              bodyId={pairBody}
+              onChangeHeading={setPairHeading}
+              onChangeBody={setPairBody}
+            />
+          ) : (
+            <>
+              <div className={`grid gap-3 ${COLUMN_CLASS[columns] ?? COLUMN_CLASS[2]}`}>
+                {shown.map((font) => (
+                  <FontCard
+                    key={font.id}
+                    font={font}
+                    settings={settings}
+                    isFavorite={favorites.set.has(font.id)}
+                    isSelected={selected.set.has(font.id)}
+                    onToggleFavorite={favorites.toggle}
+                    onToggleSelected={selected.toggle}
+                    onToggleHidden={hidden.toggle}
+                  />
+                ))}
+              </div>
 
-          <div ref={sentinelRef} className="h-10" />
+              <div ref={sentinelRef} className="h-10" />
+            </>
+          )}
         </main>
       </div>
 

@@ -8,16 +8,7 @@ import {
   onFontLoaded,
   resolveWeight,
 } from "@/lib/fontLoader";
-import type { FontItem } from "@/lib/types";
-
-export interface PreviewSettings {
-  text: string;
-  size: number;
-  letterSpacing: number;
-  lineHeight: number;
-  weight: number;
-  italic: boolean;
-}
+import type { FontItem, PreviewSettings } from "@/lib/types";
 
 interface Props {
   font: FontItem;
@@ -33,6 +24,7 @@ const SOURCE_LABEL: Record<FontItem["source"], string> = {
   google: "Google",
   fontshare: "Fontshare",
   local: "Local",
+  custom: "Uploaded",
 };
 
 function IconButton({
@@ -182,7 +174,7 @@ export default function FontCard({
       </header>
 
       <p
-        className="preview-text"
+        className={`preview-text${settings.colorsEnabled ? " rounded-lg p-4" : ""}`}
         style={{
           fontFamily: fontFamilyValue(font),
           fontSize: `${settings.size}px`,
@@ -192,6 +184,11 @@ export default function FontCard({
           fontStyle: italic ? "italic" : "normal",
           opacity: ready ? 1 : 0.25,
           transition: "opacity 200ms ease",
+          // Custom colours apply to the specimen only, so the card's own
+          // labels stay legible whatever pair the user picks.
+          ...(settings.colorsEnabled
+            ? { color: settings.textColor, background: settings.bgColor }
+            : null),
         }}
       >
         {settings.text || " "}

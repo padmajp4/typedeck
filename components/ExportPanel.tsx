@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { PreviewSettings } from "./FontCard";
 import { fontFamilyValue } from "@/lib/fontLoader";
-import type { FontItem } from "@/lib/types";
+import type { FontItem, PreviewSettings } from "@/lib/types";
 
 type Format = "css" | "html" | "list";
 
